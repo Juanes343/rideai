@@ -1,0 +1,39 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum Role { PASSENGER DRIVER ADMIN SUPPORT }
+enum RideStatus { REQUESTED NEGOTIATING DRIVER_ASSIGNED IN_PROGRESS COMPLETED CANCELED }
+
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  passwordHash String
+  fullName String
+  phone String?
+  role Role
+  createdAt DateTime @default(now())
+  driver Driver?
+  trustedContacts TrustedContact[] @relation("owner")
+}
+model Driver {
+  id String @id @default(cuid())
+  userId String @unique
+  rating Float @default(5)
+  isOnline Boolean @default(false)
+  user User @relation(fields: [userId], references: [id])
+  vehicle Vehicle?
+}
+model Vehicle { id String @id @default(cuid()) driverId String @unique brand String model String plate String @unique color String year Int driver Driver @relation(fields:[driverId], references:[id]) }
+model Ride { id String @id @default(cuid()) passengerId String driverId String? status RideStatus @default(REQUESTED) origin String destination String suggestedPrice Decimal offeredFinalPrice Decimal? startedAt DateTime? endedAt DateTime? passenger User @relation(fields:[passengerId], references:[id]) }
+model RideOffer { id String @id @default(cuid()) rideId String driverId String amount Decimal createdAt DateTime @default(now()) }
+model Payment { id String @id @default(cuid()) rideId String method String status String amount Decimal providerRef String? }
+model Rating { id String @id @default(cuid()) rideId String byUserId String toUserId String score Int comment String? }
+model Message { id String @id @default(cuid()) rideId String senderId String content String translatedContent String? createdAt DateTime @default(now()) }
+model AIConversation { id String @id @default(cuid()) userId String rideId String? role String content String createdAt DateTime @default(now()) }
+model TrustedContact { id String @id @default(cuid()) ownerUserId String contactUserId String? name String phone String relation String owner User @relation("owner", fields:[ownerUserId], references:[id]) }
+model SafetyEvent { id String @id @default(cuid()) rideId String type String severity Int metadata Json createdAt DateTime @default(now()) }
+model EmergencySetting { id String @id @default(cuid()) userId String enabled Boolean @default(false) keyword String? notifyAuthorities Boolean @default(false) }
+model DriverDocument { id String @id @default(cuid()) driverId String type String url String status String uploadedAt DateTime @default(now()) }
+model AdminAction { id String @id @default(cuid()) adminUserId String targetType String targetId String action String reason String? createdAt DateTime @default(now()) }
+model Zone { id String @id @default(cuid()) name String polygon Json riskLevel Int demandLevel Int updatedAt DateTime @updatedAt }
+model PriceRecommendation { id String @id @default(cuid()) rideId String? zoneId String? min Decimal recommended Decimal max Decimal factors Json createdAt DateTime @default(now()) }
